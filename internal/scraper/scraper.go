@@ -22,7 +22,10 @@ import (
 	log "github.com/sirupsen/logrus"
 )
 
-var n_routines = config.GetGeneralConfig().N_routines
+var (
+	nRoutines = config.GetGeneralConfig().N_routines
+	userAgent = config.GetUserAgent()
+)
 
 const (
 	tcpTimeout  = 500 * time.Millisecond
@@ -99,7 +102,7 @@ func Start() {
 }
 
 func ipLoop(start_ip net.IP, end_ip net.IP, ports []string, geoIP GeoIP) {
-	swg := sizedwaitgroup.New(n_routines)
+	swg := sizedwaitgroup.New(nRoutines)
 	for sub_a := start_ip[0]; sub_a < 255; sub_a++ {
 		if sub_a > end_ip[0] {
 			goto stop
@@ -283,7 +286,7 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 	client := &http.Client{Timeout: httpTimeout, Transport: tr}
 
 	req, _ := http.NewRequest("GET", http_p+"://"+host_port, nil)
-	req.Header.Set("User-Agent", config.GetUserAgent())
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -342,7 +345,7 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 
 func getFavIcon(client *http.Client, endpoint string) ([]byte, error) {
 	req, _ := http.NewRequest("GET", endpoint, nil)
-	req.Header.Set("User-Agent", config.GetUserAgent())
+	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
 	if err != nil {
