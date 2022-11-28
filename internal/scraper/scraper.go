@@ -282,7 +282,10 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 	}
 	client := &http.Client{Timeout: httpTimeout, Transport: tr}
 
-	resp, err := client.Get(http_p + "://" + host_port)
+	req, _ := http.NewRequest("GET", http_p+"://"+host_port, nil)
+	req.Header.Set("User-Agent", config.GetUserAgent())
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return err
 	}
@@ -338,7 +341,10 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 }
 
 func getFavIcon(client *http.Client, endpoint string) ([]byte, error) {
-	resp, err := client.Get(endpoint)
+	req, _ := http.NewRequest("GET", endpoint, nil)
+	req.Header.Set("User-Agent", config.GetUserAgent())
+
+	resp, err := client.Do(req)
 	if err != nil {
 		return nil, err
 	}

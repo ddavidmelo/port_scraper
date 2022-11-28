@@ -24,6 +24,7 @@ type General struct {
 type ScraperConfig struct {
 	FilePath  string   `mapstructure:"file_path"`
 	PortRange []string `mapstructure:"port_range"`
+	UserAgent string   `mapstructure:"user_agent"`
 }
 
 type Database struct {
@@ -52,8 +53,8 @@ func init() {
 	viper.SetDefault("database.db_user", "root")
 	viper.SetDefault("database.db_password", "root")
 	viper.SetDefault("database.db_port", "3306")
-
 	viper.SetDefault("database.clear_db_table", false)
+
 	init_config()
 	viper.WriteConfigAs(cfgFile)
 }
@@ -92,6 +93,7 @@ func init_config() {
 
 func Init_config() {
 	log.Infof("--- Config Version %s", c.General.Version)
+	log.Infof("--- Config UserAgent: %s", GetUserAgent())
 }
 
 func GetScraperConfig() ScraperConfig {
@@ -104,4 +106,8 @@ func GetDBEnv() Database {
 
 func GetGeneralConfig() General {
 	return c.General
+}
+
+func GetUserAgent() string {
+	return c.ScraperConfig.UserAgent
 }
