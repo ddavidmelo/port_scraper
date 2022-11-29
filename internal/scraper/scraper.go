@@ -14,6 +14,7 @@ import (
 	"port_scraper/internal/config"
 	"port_scraper/internal/sqldb"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
@@ -285,7 +286,10 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 	}
 	client := &http.Client{Timeout: httpTimeout, Transport: tr}
 
-	req, _ := http.NewRequest("GET", http_p+"://"+host_port, nil)
+	req, err := http.NewRequest("GET", http_p+"://"+host_port, nil)
+	if err != nil {
+		return err
+	}
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
@@ -326,13 +330,13 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 			href, ok_href := s.Attr("href")
 			rel, ok_rel := s.Attr("rel")
 			if ok_href && ok_rel && rel == "icon" {
-				faviconURLPath = href
+				faviconURLPath = strings.TrimLeft(href, "/")
 				return false
 			}
 			return true
 		})
 		if faviconURLPath != "" {
-			b, err := getFavIcon(client, http_p+"://"+host_port+faviconURLPath)
+			b, err := getFavIcon(client, http_p+"://"+host_port+"/"+faviconURLPath)
 			if b != nil && err == nil {
 				portScraper.HTTPfavicon = int32(mmh3.Hash32(standBase64(b)))
 			}
@@ -344,7 +348,10 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 }
 
 func getFavIcon(client *http.Client, endpoint string) ([]byte, error) {
-	req, _ := http.NewRequest("GET", endpoint, nil)
+	req, err := http.NewRequest("GET", endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
 	req.Header.Set("User-Agent", userAgent)
 
 	resp, err := client.Do(req)
