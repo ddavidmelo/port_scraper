@@ -1,7 +1,7 @@
 
 # Port Scraper
 
-Golang project to scan open ports in a IPv4 list. It also provides HTTP details like:
+Golang project to scan open ports in a IPv4 list. It also provides HTTP details like :
 * HTTP reponse status
 * HTTP title
 * HTTP server
