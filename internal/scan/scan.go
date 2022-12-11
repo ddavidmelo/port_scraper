@@ -1,4 +1,4 @@
-package scraper
+package scan
 
 import (
 	"bytes"
@@ -6,13 +6,12 @@ import (
 	"crypto/tls"
 	"encoding/base64"
 	"encoding/csv"
-	"encoding/json"
 	"io"
 	"net"
 	"net/http"
 	"os"
 	"port_scraper/internal/config"
-	"port_scraper/internal/sqldb"
+	"port_scraper/internal/sqldb/storage"
 	"strconv"
 	"strings"
 	"time"
@@ -33,6 +32,8 @@ const (
 	httpTimeout = 5 * time.Second
 )
 
+type Scan storage.Scan
+
 type GeoIP struct {
 	CountryCode string
 	District    string
@@ -41,35 +42,16 @@ type GeoIP struct {
 	Longitude   float32
 }
 
-type TLScertificate struct {
-	DNSNames      []string `json:"dnsNames"`
-	Organizations []string `json:"organizations"`
-}
-
-type PortScraper struct {
-	IP             net.IP
-	Port           uint16
-	Open           bool
-	Latency        time.Duration
-	HTTPstatus     uint16
-	HTTPtitle      string
-	HTTPserver     string
-	HTTPfavicon    int32
-	ServiceInfo    ServiceInfo
-	TLS            bool
-	TLScertificate TLScertificate
-}
-
 func Start() {
-	scraper_config := config.GetScraperConfig()
+	portRange := config.GetScraperConfig().PortRange
+	filePath := config.GetScraperConfig().FilePath
 
-	file, err := os.Open(scraper_config.FilePath)
+	file, err := os.Open(filePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
 	row := 0
-
 	parser := csv.NewReader(file)
 
 	for {
@@ -82,6 +64,7 @@ func Start() {
 		}
 
 		var geoIP GeoIP
+
 		geoIP.CountryCode = record[2]
 		geoIP.District = record[3]
 		geoIP.City = record[5]
@@ -97,12 +80,12 @@ func Start() {
 		geoIP.Longitude = float32(longitude)
 
 		log.Infof("[ROW: %d]--- Starting --- %s to %s", row, net.ParseIP(record[0]).To4().String(), net.ParseIP(record[1]).To4().String())
-		ipLoop(net.ParseIP(record[0]).To4(), net.ParseIP(record[1]).To4(), scraper_config.PortRange, geoIP)
+		scanLoop(&geoIP, net.ParseIP(record[0]).To4(), net.ParseIP(record[1]).To4(), portRange)
 		row++
 	}
 }
 
-func ipLoop(start_ip net.IP, end_ip net.IP, ports []string, geoIP GeoIP) {
+func scanLoop(geoIP *GeoIP, start_ip net.IP, end_ip net.IP, ports []string) {
 	swg := sizedwaitgroup.New(nRoutines)
 	for sub_a := start_ip[0]; sub_a < 255; sub_a++ {
 		if sub_a > end_ip[0] {
@@ -120,57 +103,22 @@ func ipLoop(start_ip net.IP, end_ip net.IP, ports []string, geoIP GeoIP) {
 					if sub_a == end_ip[0] && sub_b == end_ip[1] && sub_c == end_ip[2] && sub_d > end_ip[3] {
 						goto stop
 					}
-
 					swg.Add()
 					go func(rsub_a byte, rsub_b byte, rsub_c byte, rsub_d byte) {
 						defer swg.Done()
 						for _, port := range ports {
-							var portScraper PortScraper
-							portScraper.IP = net.IPv4(rsub_a, rsub_b, rsub_c, rsub_d)
-							portScraper.rawRequest(portScraper.IP.String(), port)
-							var service_info interface{} = nil
-							var tls_certificate interface{} = nil
-							if portScraper.ServiceInfo.Name != "" {
-								service_info_byte, err := json.Marshal(portScraper.ServiceInfo)
-								if err != nil {
-									log.Error("Marshal ServiceInfo", err)
-								}
-								service_info = string(service_info_byte)
-							}
-							if len(portScraper.TLScertificate.DNSNames) != 0 || len(portScraper.TLScertificate.Organizations) != 0 {
-								if len(portScraper.TLScertificate.DNSNames) == 0 { // Avoid arry: null
-									portScraper.TLScertificate.DNSNames = make([]string, 0)
-								}
-								if len(portScraper.TLScertificate.Organizations) == 0 { // Avoid arry: null
-									portScraper.TLScertificate.Organizations = make([]string, 0)
-								}
-								tls_certificate_byte, err := json.Marshal(portScraper.TLScertificate)
-								if err != nil {
-									log.Error("Marshal TLScertificate", err)
-								}
-								tls_certificate = string(tls_certificate_byte)
-							}
-
-							if portScraper.Open {
-								log.Info(portScraper, "--", portScraper.IP.To16())
-								_, err := sqldb.Exec(sqldb.DB(), "INSERT INTO scan VALUES ( NULL, INET_ATON(?), ?, ?, ?, ?, ?, ?, ?, ?, ?,?,?,?,?,?,?,NOW())",
-									portScraper.IP.String(),
-									portScraper.Port,
-									portScraper.Open,
-									portScraper.Latency,
-									portScraper.HTTPstatus,
-									portScraper.HTTPtitle,
-									portScraper.HTTPserver,
-									portScraper.HTTPfavicon,
-									service_info,
-									portScraper.TLS,
-									tls_certificate,
-									geoIP.CountryCode,
-									geoIP.District,
-									geoIP.City,
-									geoIP.Latitude,
-									geoIP.Longitude,
-								)
+							var scan Scan
+							scan.IP = net.IPv4(rsub_a, rsub_b, rsub_c, rsub_d)
+							scan.CountryCode = geoIP.CountryCode
+							scan.District = geoIP.District
+							scan.City = geoIP.City
+							scan.Latitude = geoIP.Latitude
+							scan.Longitude = geoIP.Longitude
+							RawRequest(&scan, scan.IP.String(), port)
+							if scan.Open {
+								log.Info(scan, "--", scan.IP.To16())
+								row := storage.Scan(scan)
+								err := storage.InsertScanResult(row)
 								if err != nil {
 									log.Error("DB insert: ", err)
 								}
@@ -187,19 +135,18 @@ stop:
 	swg.Wait()
 }
 
-func (portScraper *PortScraper) rawRequest(host string, port string) {
-
+func RawRequest(scan *Scan, host string, port string) {
 	portI, err := strconv.Atoi(port)
 	if err != nil {
 		log.Error("Wrong port format:", err)
 	}
 
-	portScraper.Port = uint16(portI)
-	host_port := net.JoinHostPort(host, port)
+	scan.Port = uint16(portI)
+	hostPort := net.JoinHostPort(host, port)
 
 	// TCP non encrypted
 	start := time.Now()
-	conn, err := net.DialTimeout("tcp", host_port, tcpTimeout)
+	conn, err := net.DialTimeout("tcp", hostPort, tcpTimeout)
 	if err != nil {
 		log.Debug("TCP Connecting error:", err)
 		return
@@ -207,27 +154,27 @@ func (portScraper *PortScraper) rawRequest(host string, port string) {
 
 	if conn != nil {
 		defer conn.Close()
-		log.Debug("OPENED:", host_port)
-		portScraper.Open = true
-		portScraper.Latency = time.Since(start)
+		log.Debug("OPENED:", hostPort)
+		scan.Open = true
+		scan.Latency = time.Since(start)
 		conn.SetReadDeadline(time.Now().Add(tcpTimeout))
 
 		// Select the serivce based on the Port number
-		portScraper.ServiceInfo, err = portScraper.ServiceSelector(conn, port)
+		scan.ServiceInfo, err = ServiceSelector(conn, port)
 		if err == nil {
 			return
 		}
 
-		err = portScraper.httpRequest(host_port, false)
+		err = httpRequest(scan, hostPort, false)
 		if err != nil {
 			log.Debug("TCP HTTP error:", err)
 		} else {
-			if portScraper.HTTPstatus < 400 && portScraper.HTTPstatus != 0 {
+			if scan.HTTPstatus < 400 && scan.HTTPstatus != 0 {
 				return
 			}
 		}
 	}
-	portScraper.TLS = false
+	scan.TLS = false
 
 	// TCP + TLS encrypted
 	conf := &tls.Config{
@@ -238,7 +185,7 @@ func (portScraper *PortScraper) rawRequest(host string, port string) {
 	d := tls.Dialer{
 		Config: conf,
 	}
-	conn, err = d.DialContext(ctx, "tcp", host_port)
+	conn, err = d.DialContext(ctx, "tcp", hostPort)
 	cancel() // Ensure cancel is always called
 	if err != nil {
 		log.Debug("TCP+TLS Connecting error:", err)
@@ -252,16 +199,16 @@ func (portScraper *PortScraper) rawRequest(host string, port string) {
 		for _, v := range state.PeerCertificates {
 			if v.DNSNames != nil || v.Subject.Organization != nil {
 				log.Debug("----- TCP+TLS DNSNames=", v.DNSNames, "  TCP+TLS Organization=", v.Subject.Organization)
-				portScraper.TLScertificate.DNSNames = v.DNSNames
-				portScraper.TLScertificate.Organizations = v.Subject.Organization
+				scan.TLScertificate.DNSNames = v.DNSNames
+				scan.TLScertificate.Organizations = v.Subject.Organization
 
 			}
 
 		}
 		log.Debug("TCP+TLS ServerName:", state.ServerName)
 
-		portScraper.TLS = true
-		err = portScraper.httpRequest(host_port, true)
+		scan.TLS = true
+		err = httpRequest(scan, hostPort, true)
 		if err != nil {
 			log.Debug("TCP+TLS HTTP error:", err)
 		}
@@ -269,12 +216,12 @@ func (portScraper *PortScraper) rawRequest(host string, port string) {
 
 }
 
-func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error {
-	var http_p string
+func httpRequest(scan *Scan, hostport string, secure bool) error {
+	var httpProtocol string
 	if secure {
-		http_p = "https"
+		httpProtocol = "https"
 	} else {
-		http_p = "http"
+		httpProtocol = "http"
 	}
 
 	tr := &http.Transport{
@@ -286,7 +233,7 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 	}
 	client := &http.Client{Timeout: httpTimeout, Transport: tr}
 
-	req, err := http.NewRequest("GET", http_p+"://"+host_port, nil)
+	req, err := http.NewRequest("GET", httpProtocol+"://"+hostport, nil)
 	if err != nil {
 		return err
 	}
@@ -298,12 +245,12 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 	}
 	defer resp.Body.Close()
 
+	log.Debug("ENDPOINT: ", hostport, "---", resp.Header.Get("Server"), "---", resp.StatusCode)
+	scan.HTTPstatus = uint16(resp.StatusCode)
+	scan.HTTPserver = resp.Header.Get("Server")
+
 	// Limit response body size to 10Mbytes
 	limitedReader := &io.LimitedReader{R: resp.Body, N: 10000000}
-
-	log.Debug("ENDPOINT: ", host_port, "---", resp.Header.Get("Server"), "---", resp.StatusCode)
-	portScraper.HTTPstatus = uint16(resp.StatusCode)
-	portScraper.HTTPserver = resp.Header.Get("Server")
 
 	// Load the HTML document
 	doc, err := goquery.NewDocumentFromReader(limitedReader)
@@ -311,19 +258,19 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 		return err
 	}
 
-	// Find the review items
+	// Find HTML page title
 	title := doc.Find("title").Text()
 	if len(title) >= 30 {
 		title = title[:30]
 	}
 	log.Debug("TITLE: ", title)
-	portScraper.HTTPtitle = title
+	scan.HTTPtitle = title
 	client.CloseIdleConnections()
 
-	//FavICON
-	b, err := getFavIcon(client, http_p+"://"+host_port+"/favicon.ico")
+	// Find FavICON
+	b, err := getFavIcon(client, httpProtocol+"://"+hostport+"/favicon.ico")
 	if b != nil && err == nil {
-		portScraper.HTTPfavicon = int32(mmh3.Hash32(standBase64(b)))
+		scan.HTTPfavicon = int32(mmh3.Hash32(standBase64(b)))
 	} else {
 		var faviconURLPath string
 		doc.Find("link").EachWithBreak(func(i int, s *goquery.Selection) bool {
@@ -336,9 +283,9 @@ func (portScraper *PortScraper) httpRequest(host_port string, secure bool) error
 			return true
 		})
 		if faviconURLPath != "" {
-			b, err := getFavIcon(client, http_p+"://"+host_port+"/"+faviconURLPath)
+			b, err := getFavIcon(client, httpProtocol+"://"+hostport+"/"+faviconURLPath)
 			if b != nil && err == nil {
-				portScraper.HTTPfavicon = int32(mmh3.Hash32(standBase64(b)))
+				scan.HTTPfavicon = int32(mmh3.Hash32(standBase64(b)))
 			}
 		}
 

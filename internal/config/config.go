@@ -43,7 +43,7 @@ type Config struct {
 }
 
 func init() {
-	viper.Set("general.version", "v.0.0.2")
+	viper.Set("general.version", "v.1.0.2")
 	viper.SetDefault("general.log_level", 3)
 	viper.SetDefault("general.log_disable_colors", false)
 	viper.SetDefault("general.log_disable_timestamp", false)
