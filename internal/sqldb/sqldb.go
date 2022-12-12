@@ -35,7 +35,6 @@ func ConnectDB() {
 		}
 	}
 
-	log.Info("111sdasaaaaaaaaaaaaad")
 	_, err = d.Exec("CREATE DATABASE IF NOT EXISTS " + config.GetDBEnv().Name)
 	if err != nil {
 		panic(err)
