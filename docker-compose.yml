@@ -1,0 +1,23 @@
+version: "3"
+
+services:
+  mariadb:
+    container_name: "mariadb"
+    image: linuxserver/mariadb:alpine
+    ports:
+      - 3306:3306
+    volumes:
+      - /media/dm/EXT_DISK/dbmaria:/config/databases/
+      # - /root/docker/mariadb:/config/initdb.d/
+    environment:
+      - MYSQL_ROOT_PASSWORD=root
+      - MYSQL_PASSWORD=admin
+      - MYSQL_USER=admin
+  port_scraper:
+    container_name: "port_scraper"
+    image: "port_scraper"
+    # restart: on-failure
+    depends_on:
+      - mariadb
+    volumes:
+      - /root/docker/port_scraper/config/:/port_scraper/config
