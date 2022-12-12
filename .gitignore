@@ -15,7 +15,7 @@
 config/*
 
 # except config folder
-!config/.gitkeep 
+!config/test.csv
 
 # Dependency directories (remove the comment below to include it)
 # vendor/

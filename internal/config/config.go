@@ -44,16 +44,19 @@ type Config struct {
 
 func init() {
 	viper.Set("general.version", "v.1.0.2")
-	viper.SetDefault("general.log_level", 3)
+	viper.SetDefault("general.log_level", 2)
 	viper.SetDefault("general.log_disable_colors", false)
 	viper.SetDefault("general.log_disable_timestamp", false)
 	viper.SetDefault("general.n_routines", 50)
-	viper.SetDefault("database.db_host", "192.168.1.102")
+	viper.SetDefault("database.db_host", "mariadb")
 	viper.SetDefault("database.db_name", "port_scraper")
 	viper.SetDefault("database.db_user", "root")
 	viper.SetDefault("database.db_password", "root")
 	viper.SetDefault("database.db_port", "3306")
 	viper.SetDefault("database.clear_db_table", false)
+	viper.SetDefault("database.file_path", "./config/test.csv")
+	viper.SetDefault("database.port_range", []string{"22", "80", "8080", "443", "8443", "1883", "8883", "9092", "1880", "3000", "8123", "32400", "10011", "3306", "27017", "5432", "6379", "8086", "1521", "9200", "25565", "27015"})
+	viper.SetDefault("database.user_agent", "Mozilla/5.0 (compatible; PortScraper/1.0; +https://YOURDOMAIN.COM)")
 
 	init_config()
 	viper.WriteConfigAs(cfgFile)
