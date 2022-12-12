@@ -19,35 +19,37 @@ type DBHandler struct {
 // ConnectDB opens a connection to the database
 func ConnectDB() {
 	log.Info("--- Connecting to DB")
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/?parseTime=true", config.GetDBEnv().User, config.GetDBEnv().Password, config.GetDBEnv().Host, config.GetDBEnv().Port)
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/?parseTime=true&timeout=5s", config.GetDBEnv().User, config.GetDBEnv().Password, config.GetDBEnv().Host, config.GetDBEnv().Port)
 	d, err := sql.Open("mysql", dsn)
 	if err != nil {
 		panic(err)
 	}
 	defer d.Close()
 
+	for {
+		if err := d.Ping(); err != nil {
+			log.Error("storage: ping mySQL database error, will retry in 5s")
+			time.Sleep(5 * time.Second)
+		} else {
+			break
+		}
+	}
+
+	log.Info("111sdasaaaaaaaaaaaaad")
 	_, err = d.Exec("CREATE DATABASE IF NOT EXISTS " + config.GetDBEnv().Name)
 	if err != nil {
 		panic(err)
 	}
 	d.Close()
 
-	dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true", config.GetDBEnv().User, config.GetDBEnv().Password, config.GetDBEnv().Host, config.GetDBEnv().Port, config.GetDBEnv().Name)
+	dsn = fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&timeout=5s", config.GetDBEnv().User, config.GetDBEnv().Password, config.GetDBEnv().Host, config.GetDBEnv().Port, config.GetDBEnv().Name)
 	d, err = sql.Open("mysql", dsn)
 	if err != nil {
 		panic(err)
 	}
 
-	for {
-		if err := d.Ping(); err != nil {
-			log.Error("storage: ping mySQL database error, will retry in 2s")
-			time.Sleep(2 * time.Second)
-		} else {
-			break
-		}
-	}
-	d.SetConnMaxIdleTime(5 * 60 * 1000)
-	d.SetConnMaxLifetime(5 * 60 * 1000)
+	d.SetConnMaxIdleTime(1 * time.Second)
+	d.SetConnMaxLifetime(30 * time.Second)
 
 	database = &DBHandler{d}
 	log.Info("--- Connected to DB")
