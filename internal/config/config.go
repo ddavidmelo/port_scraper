@@ -54,9 +54,9 @@ func init() {
 	viper.SetDefault("database.db_password", "root")
 	viper.SetDefault("database.db_port", "3306")
 	viper.SetDefault("database.clear_db_table", false)
-	viper.SetDefault("database.file_path", "./config/test.csv")
-	viper.SetDefault("database.port_range", []string{"22", "80", "8080", "443", "8443", "1883", "8883", "9092", "1880", "3000", "8123", "32400", "10011", "3306", "27017", "5432", "6379", "8086", "1521", "9200", "25565", "27015"})
-	viper.SetDefault("database.user_agent", "Mozilla/5.0 (compatible; PortScraper/1.0; +https://YOURDOMAIN.COM)")
+	viper.SetDefault("scraper.file_path", "./config/test.csv")
+	viper.SetDefault("scraper.port_range", []string{"22", "80", "8080", "443", "8443", "1883", "8883", "9092", "1880", "3000", "8123", "32400", "10011", "3306", "27017", "5432", "6379", "8086", "1521", "9200", "25565", "27015"})
+	viper.SetDefault("scraper.user_agent", "Mozilla/5.0 (compatible; PortScraper/1.0; +https://YOURDOMAIN.COM)")
 
 	init_config()
 	viper.WriteConfigAs(cfgFile)
