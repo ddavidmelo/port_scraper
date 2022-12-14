@@ -32,7 +32,7 @@ func ssh(conn net.Conn) storage.ServiceInfo {
 	buf := make([]byte, 1024)
 	if read, err := bufio.NewReader(conn).Read(buf); err == nil && read > 0 {
 		s := string(buf[0:read])
-		re := regexp.MustCompile("\x53\x53\x48\x2D([^\x00]+.*?)\x0D")
+		re := regexp.MustCompile("\x53\x53\x48\x2D([^\x00].*?)\x0D")
 		match := re.FindStringSubmatch(s)
 		if len(match) > 0 {
 			details["ServerName"] = match[1]
@@ -51,7 +51,7 @@ func mysql(conn net.Conn) storage.ServiceInfo {
 	buf := make([]byte, 1024)
 	if read, err := bufio.NewReader(conn).Read(buf); err == nil && read > 0 {
 		s := string(buf[0:read])
-		re := regexp.MustCompile("\x0A([^\x00]+.*?)\x00")
+		re := regexp.MustCompile("\x0A([^\x00].*?)\x00")
 		match := re.FindStringSubmatch(s)
 		if len(match) > 0 {
 			details["ServerName"] = match[1]
