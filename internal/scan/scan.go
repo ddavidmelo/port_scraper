@@ -24,7 +24,7 @@ import (
 
 var (
 	nRoutines = config.GetGeneralConfig().N_routines
-	userAgent = config.GetUserAgent()
+	userAgent = config.GetScraperConfig().UserAgent
 )
 
 const (
