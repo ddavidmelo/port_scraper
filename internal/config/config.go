@@ -96,7 +96,7 @@ func init_config() {
 
 func Init_config() {
 	log.Infof("--- Config Version %s", c.General.Version)
-	log.Infof("--- Config UserAgent: %s", GetUserAgent())
+	log.Infof("--- Config UserAgent: %s", c.ScraperConfig.UserAgent)
 }
 
 func GetScraperConfig() ScraperConfig {
@@ -109,8 +109,4 @@ func GetDBEnv() Database {
 
 func GetGeneralConfig() General {
 	return c.General
-}
-
-func GetUserAgent() string {
-	return c.ScraperConfig.UserAgent
 }
