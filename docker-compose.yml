@@ -1,0 +1,20 @@
+version: "3"
+
+services:
+  port_scraper:
+    container_name: "port_scraper"
+    build: .
+    depends_on:
+      - mariadb
+    volumes:
+      - ./config/:/port_scraper/config
+  mariadb:
+    container_name: "mariadb"
+    image: mariadb
+    restart: always
+    ports:
+      - 3306:3306
+    volumes:
+      - ./dbmaria:/config/databases/
+    environment:
+      - MARIADB_ROOT_PASSWORD=root
