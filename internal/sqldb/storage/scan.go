@@ -13,7 +13,7 @@ type ServiceInfo struct {
 }
 
 type TLScertificate struct {
-	DNSNames      []string `json:"dnsNames"`
+	CommonName    []string `json:"CommonName"`
 	Organizations []string `json:"organizations"`
 }
 
@@ -48,9 +48,9 @@ func InsertScanResult(row Scan) error {
 		serviceInfo = string(serviceInfoByte)
 	}
 
-	if len(row.TLScertificate.DNSNames) != 0 || len(row.TLScertificate.Organizations) != 0 {
-		if len(row.TLScertificate.DNSNames) == 0 { // Avoid arry: null
-			row.TLScertificate.DNSNames = make([]string, 0)
+	if len(row.TLScertificate.CommonName) != 0 || len(row.TLScertificate.Organizations) != 0 {
+		if len(row.TLScertificate.CommonName) == 0 { // Avoid arry: null
+			row.TLScertificate.CommonName = make([]string, 0)
 		}
 		if len(row.TLScertificate.Organizations) == 0 { // Avoid arry: null
 			row.TLScertificate.Organizations = make([]string, 0)

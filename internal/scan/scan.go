@@ -199,8 +199,8 @@ func RawRequest(scan *Scan, host string, port string) {
 		for _, v := range state.PeerCertificates {
 			if v.DNSNames != nil || v.Subject.Organization != nil {
 				log.Debug("----- TCP+TLS DNSNames=", v.DNSNames, "  TCP+TLS Organization=", v.Subject.Organization)
-				scan.TLScertificate.DNSNames = v.DNSNames
-				scan.TLScertificate.Organizations = v.Subject.Organization
+				scan.TLScertificate.CommonName = append(scan.TLScertificate.CommonName, v.Subject.CommonName)
+				scan.TLScertificate.Organizations = append(scan.TLScertificate.Organizations, v.Subject.Organization...)
 
 			}
 
