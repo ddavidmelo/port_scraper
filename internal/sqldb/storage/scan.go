@@ -13,7 +13,7 @@ type ServiceInfo struct {
 }
 
 type TLScertificate struct {
-	CommonName    []string `json:"CommonName"`
+	CommonName    []string `json:"commonName"`
 	Organizations []string `json:"organizations"`
 }
 
