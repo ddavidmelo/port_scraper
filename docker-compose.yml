@@ -13,7 +13,7 @@ services:
     image: mariadb
     restart: always
     ports:
-      - 3306:3306
+      - 127.0.0.1:3306:3306
     volumes:
       - ./dbmaria:/config/databases/
     environment:
@@ -22,7 +22,7 @@ services:
     container_name: "grafana"
     image: grafana/grafana:latest
     ports:
-      - 3000:3000
+      - 127.0.0.1:3000:3000
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
