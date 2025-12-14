@@ -1,17 +1,18 @@
 module port_scraper
 
-go 1.18
+go 1.21.0
 
 require (
 	github.com/PuerkitoBio/goquery v1.8.1
 	github.com/datadog/mmh3 v0.0.0-20210722141835-012dc69a9e49
-	github.com/go-sql-driver/mysql v1.7.1
+	github.com/go-sql-driver/mysql v1.9.3
 	github.com/remeh/sizedwaitgroup v1.0.0
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/viper v1.18.1
 )
 
 require (
+	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/andybalholm/cascadia v1.3.2 // indirect
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/hashicorp/hcl v1.0.0 // indirect
