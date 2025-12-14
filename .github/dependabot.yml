@@ -4,4 +4,4 @@ updates:
     directory: "/"             # Location of the go.mod file
     schedule:
       interval: "weekly"       # Check for updates weekly
-    open-pull-requests-limit: 0
+    open-pull-requests-limit: 1
