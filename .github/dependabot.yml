@@ -1,7 +1,0 @@
-version: 2
-updates:
-  - package-ecosystem: "gomod" # Specifies the Go modules ecosystem
-    directory: "/"             # Location of the go.mod file
-    schedule:
-      interval: "weekly"       # Check for updates weekly
-    open-pull-requests-limit: 1
