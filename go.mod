@@ -7,7 +7,7 @@ require (
 	github.com/datadog/mmh3 v0.0.0-20210722141835-012dc69a9e49
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/remeh/sizedwaitgroup v1.0.0
-	github.com/sirupsen/logrus v1.9.3
+	github.com/sirupsen/logrus v1.9.4
 	github.com/spf13/viper v1.18.1
 )
 
